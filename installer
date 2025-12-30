@@ -24,7 +24,7 @@ mkdir -pv "$STATE_PATH" "$BIN_PATH" "$CONFIG_PATH"
 touch "$STATE_PATH/pacman" "$STATE_PATH/paru" "$STATE_PATH/flatpak" "$STATE_PATH/yay"
 
 if [[ "$USE_PARU" == "1" && "$USE_YAY" == "1" ]];then
-	echo "You enabled both paru and yay, reconsider your life choises"
+	echo "You enabled both paru and yay, reconsider your life choices"
 	echo "Exiting ..."
 	exit 1
 fi
@@ -46,5 +46,4 @@ USE_YAY="$USE_YAY"
 USE_FLATPAK="$USE_FLATPAK" 
 EOF
 
-echo "Installation successfull"
-
+echo "Installation successful"

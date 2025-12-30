@@ -1,3 +1,301 @@
 #!/usr/bin/env bash
+shopt -s nullglob
 
-echo "apkgs $1"
+CONFIG_PATH="${HOME}/.config/apkgs/apkgs.conf"
+
+show_help() {
+	local program_name="${0##*/}"
+
+	cat <<EOF
+$program_name - Arch Package Sync
+
+Usage:
+	$program_name <backend> <command> [arguments]
+
+Backends:
+	pacman		Default Arch manager
+	paru        AUR helper (recommended)
+	yay         AUR helper
+	flatpak     Flatpak manager
+
+Commands:
+	add <pkg>           Install a package
+	remove <pkg>        Remove a package
+	sync                Sync repositories
+
+Options:
+	-h, --help          Show this help message
+
+Examples:
+	$program_name paru add firefox
+	$program_name yay remove neovim
+	$program_name flatpak add org.mozilla.firefox
+EOF
+}
+
+parse_flags() {
+	while [[ "$1" == -* ]]; do
+		case "$1" in
+			-h|--help)
+				show_help
+				exit 0
+				;;
+			*)
+				echo "Unknown option: $1" >&2
+				exit 1
+				;;
+		esac
+		shift
+	done
+
+	REMAINING_ARGS=("$@")
+}
+
+parse_positionals() {
+	local args=("$@")
+
+	BACKEND="${args[0]:-}"
+	COMMAND="${args[1]:-}"
+	ARGS=("${args[@]:2}")
+}
+
+validate_backend() {
+	case "$BACKEND" in
+		pacman|paru|yay|flatpak)
+			;;
+		*)
+			echo "Unknown backend: $BACKEND" >&2
+			show_help
+			exit 1
+			;;
+	esac
+}
+
+validate_command() {
+	case "$COMMAND" in
+		add|remove|sync)
+			;;
+		*)
+			echo "Unknown command: $COMMAND" >&2
+			show_help
+			exit 1
+			;;
+	esac
+}
+
+validate_args() {
+	case "$COMMAND" in
+		add|remove)
+			if [[ ${#ARGS[@]} -lt 1 ]]; then
+				echo "Missing package name" >&2
+				exit 1
+			fi
+			;;
+		sync)
+			;;
+	esac
+}
+
+load_config() {
+	if [[ -f "$CONFIG_PATH" ]]; then
+		source "$CONFIG_PATH"
+	fi
+}
+
+run_pacman() {
+	case "$COMMAND" in
+		add)
+			for pkg in "${ARGS[@]}"; do
+				add_package "$pkg" "pacman"
+				sudo pacman -S --noconfirm "$pkg"
+			done
+			;;
+		remove)
+			for pkg in "${ARGS[@]}"; do
+				remove_package "$pkg" "pacman"
+				sudo pacman -Rns --noconfirm "$pkg"
+			done
+			;;
+		sync)
+			sync_backend "pacman"	
+			;;
+	esac
+}
+
+run_paru() {
+	if [[ "$USE_PARU" != "1" ]]; then
+		echo "paru is not supported in your config!"
+		exit 1
+	fi
+
+	case "$COMMAND" in
+		add)
+			for pkg in "${ARGS[@]}"; do
+				add_package "$pkg" "paru"
+				sudo paru -S --noconfirm "$pkg"
+			done
+			;;
+		remove)
+			for pkg in "${ARGS[@]}"; do
+				remove_package "$pkg" "paru"
+				sudo paru -Rns --noconfirm "$pkg"
+			done
+			;;
+		sync)
+			sync_backend "paru"	
+			;;
+	esac
+}
+
+run_yay() {
+	if [[ "$USE_YAY" != "1" ]]; then
+		echo "yay is not supported in your config!"
+		exit 1
+	fi
+
+	case "$COMMAND" in
+		add)
+			for pkg in "${ARGS[@]}"; do
+				add_package "$pkg" "yay"
+				sudo yay -S --noconfirm "$pkg"
+			done
+			;;
+		remove)
+			for pkg in "${ARGS[@]}"; do
+				remove_package "$pkg" "yay"
+				sudo yay -Rns --noconfirm "$pkg"
+			done
+			;;
+		sync)
+			sync_backend "yay"	
+			;;
+	esac
+}
+
+run_flatpak() {
+	if [[ "$USE_FLATPAK" != "1" ]]; then
+		echo "flatpak is not supported in your config!"
+		exit 1
+	fi
+
+	case "$COMMAND" in
+		add)
+			for pkg in "${ARGS[@]}"; do
+				add_package "$pkg" "flatpak"
+				sudo flatpak install -y "$pkg"
+			done
+			;;
+		remove)
+			for pkg in "${ARGS[@]}"; do
+				remove_package "$pkg" "flatpak"
+				sudo flatpak uninstall -y "$pkg"	
+			done
+			;;
+		sync)
+			sync_backend "yay"	
+			;;
+	esac
+}
+
+add_package() {
+	local package="$1"
+	local backend="$2"
+	local state_file
+
+	if [[ -z "$package" || -z "$backend" ]]; then
+		echo "add_package: missing arguments" >&2
+		return 1
+	fi
+
+	state_file="$STATE_PATH/$backend"
+
+	# Avoid duplicate packages
+	grep -qxF "$package" "$state_file" || echo "$package" >> "$state_file"
+}
+
+remove_package() {
+	local package="$1"
+	local backend="$2"
+	local state_file
+
+	if [[ -z "$package" || -z "$backend" ]]; then
+		echo "remove_package: missing arguments" >&2
+		return 1
+	fi
+
+	state_file="$STATE_PATH/$backend"
+	tmp_file="/tmp/apkgs_$(date +%Y%m%d_%H%M%S)"
+
+	# Remove exact line
+	grep -v -F -x "$package" "$state_file" > "$tmp_file"
+	mv "$tmp_file" "$state_file"
+}
+
+sync_backend() {
+	local backend="$1"
+	local state_file pkg
+
+	state_file="$STATE_PATH/$backend"
+
+	if [[ ! -f "$state_file" ]]; then
+		echo "No state file found for $backend."
+		return 1
+	fi
+
+	while IFS= read -r pkg; do
+		[[ -z "$pkg" ]] && continue
+
+		case "$backend" in
+			pacman)
+				sudo pacman -S --noconfirm "$pkg"
+				;;
+			yay)
+				sudo yay -S --noconfirm "$pkg"
+				;;
+			paru)
+				sudo paru -S --noconfirm "$pkg"
+				;;
+			flatpak)
+				sudo flatpak install -y "$pkg"
+				;;
+			*)
+				echo "Unknown backend: $backend"
+				return 1
+				;;
+		esac
+	done < "$state_file"
+}
+
+
+main() {
+	parse_flags "$@"
+	parse_positionals "${REMAINING_ARGS[@]}"
+
+	validate_backend
+	validate_command
+	validate_args
+
+	load_config
+	
+	case "$BACKEND" in
+		pacman)
+			run_pacman
+			;;
+		paru)
+			run_paru
+			;;
+		yay)
+			run_yay
+			;;
+		flatpak)
+			run_flatpak
+			;;
+		*)
+			echo "Unsupported backend: $BACKEND" >&2
+			exit 1
+			;;
+	esac
+}
+
+main "$@"
+

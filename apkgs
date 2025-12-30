@@ -252,10 +252,10 @@ sync_backend() {
 				sudo pacman -S --needed --noconfirm "$pkg"
 				;;
 			yay)
-				sudo yay -S --needed --noconfirm "$pkg"
+				yay -S --needed --noconfirm "$pkg"
 				;;
 			paru)
-				sudo paru -S --needed --noconfirm "$pkg"
+				paru -S --needed --noconfirm "$pkg"
 				;;
 			flatpak)
 				sudo flatpak install -y "$pkg"

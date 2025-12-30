@@ -20,27 +20,12 @@ STATE_PATH=${STATE_PATH:-"$HOME/.local/state/apkgs"}
 BIN_PATH=${BIN_PATH:-"$HOME/.local/bin/apkgs"}
 CONFIG_PATH="$HOME/.config/apkgs"
 
-mkdir -p "$STATE_PATH" "$STATE_PATH/pacman" "$BIN_PATH" "$CONFIG_PATH"
+mkdir -pv "$STATE_PATH" "$BIN_PATH" "$CONFIG_PATH"
 
 if [[ "$USE_PARU" == "1" && "$USE_YAY" == "1" ]];then
 	echo "You enabled both paru and yay, reconsider your life choises"
 	echo "Exiting ..."
 	exit 1
-fi
-
-if [[ "$USE_PARU" == "1" ]];then
-	PARU_PATH="$STATE_PATH/paru"
-	mkdir -p "$PARU_PATH"
-fi
-
-if [[ "$USE_YAY" == "1" ]];then
-	YAY_PATH="$STATE_PATH/yay"
-	mkdir -p "$YAY_PATH"
-fi
-
-if [[ "$USE_FLATPAK" == "1" ]];then
-	FLATPAK_PATH="$STATE_PATH/flatpak"
-	mkdir -p "$FLATPAK_PATH"
 fi
 
 # Move binnary
@@ -50,7 +35,7 @@ if [[ ! -f "apkgs" ]]; then
 	exit 1
 fi
 
-mv "apkgs" "$BIN_PATH/apkgs"
+mv -v "apkgs" "$BIN_PATH/apkgs"
 
 # Save user prefs
 cat > "$CONFIG_PATH/apkgs.conf" <<EOF
@@ -60,4 +45,5 @@ USE_YAY="$USE_YAY"
 USE_FLATPAK="$USE_FLATPAK" 
 EOF
 
+echo "Installation successfull"
 

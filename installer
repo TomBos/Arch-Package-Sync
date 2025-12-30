@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# If you want, change these default paths
+
+# STATE_PATH="$HOME/.local/state/apkgs"
+# BIN_PATH="$HOME/.local/bin/apkgs"
+
+# Add custom repositories 
+
+# USE_PARU="0"
+# USE_YAY="0"
+# USE_FLATPAK="0"
+
+USE_PARU="${USE_PARU:-0}"
+USE_YAY="${USE_YAY:-0}"
+USE_FLATPAK="${USE_FLATPAK:-0}"
+
+STATE_PATH=${STATE_PATH:-"$HOME/.local/state/apkgs"}
+BIN_PATH=${BIN_PATH:-"$HOME/.local/bin/apkgs"}
+CONFIG_PATH="$HOME/.config/apkgs"
+
+mkdir -p "$STATE_PATH" "$BIN_PATH" "$CONFIG_PATH"
+
+if [[ "$USE_PARU" == "1" ]];then
+	PARU_PATH="$STATE_PATH/paru"
+	mkdir -p "$PARU_PATH"
+fi
+
+if [[ "$USE_YAY" == "1" ]];then
+	YAY_PATH="$STATE_PATH/yay"
+	mkdir -p "$YAY_PATH"
+fi
+
+if [[ "$USE_FLATPAK" == "1" ]];then
+	FLATPAK_PATH="$STATE_PATH/flatpak"
+	mkdir -p "$FLATPAK_PATH"
+fi
+
+# Move binnary
+mv "apkgs" "$BIN_PATH/apkgs"
+
+# Save user prefs
+echo "STATE_PATH=\"$STATE_PATH\"" >> "$CONFIG_PATH/apkgs.conf"
+echo "USE_PARU=\"$USE_PARU\"" >> "$CONFIG_PATH/apkgs.conf"
+echo "USE_YAY=\"$USE_YAY\"" >> "$CONFIG_PATH/apkgs.conf"
+echo "USE_FLATPAK=\"$USE_FLATPAK\"" >> "$CONFIG_PATH/apkgs.conf"
+

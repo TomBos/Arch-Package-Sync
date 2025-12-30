@@ -8,16 +8,16 @@ set -euo pipefail
 
 # Add custom repositories 
 
-# USE_PARU="0"
-# USE_YAY="0"
-# USE_FLATPAK="0"
+# USE_PARU="1"
+# USE_YAY="1"
+# USE_FLATPAK="1"
 
 USE_PARU="${USE_PARU:-0}"
 USE_YAY="${USE_YAY:-0}"
 USE_FLATPAK="${USE_FLATPAK:-0}"
 
 STATE_PATH=${STATE_PATH:-"$HOME/.local/state/apkgs"}
-BIN_PATH=${BIN_PATH:-"$HOME/.local/bin/apkgs"}
+BIN_PATH=${BIN_PATH:-"$HOME/.local/bin"}
 CONFIG_PATH="$HOME/.config/apkgs"
 
 mkdir -pv "$STATE_PATH" "$BIN_PATH" "$CONFIG_PATH"

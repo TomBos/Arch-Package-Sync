@@ -21,6 +21,7 @@ BIN_PATH=${BIN_PATH:-"$HOME/.local/bin"}
 CONFIG_PATH="$HOME/.config/apkgs"
 
 mkdir -pv "$STATE_PATH" "$BIN_PATH" "$CONFIG_PATH"
+touch "$STATE_PATH/pacman" "$STATE_PATH/paru" "$STATE_PATH/flatpak" "$STATE_PATH/yay"
 
 if [[ "$USE_PARU" == "1" && "$USE_YAY" == "1" ]];then
 	echo "You enabled both paru and yay, reconsider your life choises"

@@ -132,13 +132,13 @@ run_paru() {
 		add)
 			for pkg in "${ARGS[@]}"; do
 				add_package "$pkg" "paru"
-				sudo paru -S --noconfirm "$pkg"
+				paru -S --noconfirm "$pkg"
 			done
 			;;
 		remove)
 			for pkg in "${ARGS[@]}"; do
 				remove_package "$pkg" "paru"
-				sudo paru -Rns --noconfirm "$pkg"
+				paru -Rns --noconfirm "$pkg"
 			done
 			;;
 		sync)
@@ -157,13 +157,13 @@ run_yay() {
 		add)
 			for pkg in "${ARGS[@]}"; do
 				add_package "$pkg" "yay"
-				sudo yay -S --noconfirm "$pkg"
+				yay -S --noconfirm "$pkg"
 			done
 			;;
 		remove)
 			for pkg in "${ARGS[@]}"; do
 				remove_package "$pkg" "yay"
-				sudo yay -Rns --noconfirm "$pkg"
+				yay -Rns --noconfirm "$pkg"
 			done
 			;;
 		sync)
@@ -192,7 +192,7 @@ run_flatpak() {
 			done
 			;;
 		sync)
-			sync_backend "yay"	
+			sync_backend "flatpak"	
 			;;
 	esac
 }
@@ -208,6 +208,7 @@ add_package() {
 	fi
 
 	state_file="$STATE_PATH/$backend"
+	touch "$state_file"
 
 	# Avoid duplicate packages
 	grep -qxF "$package" "$state_file" || echo "$package" >> "$state_file"
@@ -224,7 +225,8 @@ remove_package() {
 	fi
 
 	state_file="$STATE_PATH/$backend"
-	tmp_file="/tmp/apkgs_$(date +%Y%m%d_%H%M%S)"
+	touch "$state_file"
+	tmp_file="$(mktemp)"
 
 	# Remove exact line
 	grep -v -F -x "$package" "$state_file" > "$tmp_file"
@@ -247,13 +249,13 @@ sync_backend() {
 
 		case "$backend" in
 			pacman)
-				sudo pacman -S --noconfirm "$pkg"
+				sudo pacman -S --needed --noconfirm "$pkg"
 				;;
 			yay)
-				sudo yay -S --noconfirm "$pkg"
+				sudo yay -S --needed --noconfirm "$pkg"
 				;;
 			paru)
-				sudo paru -S --noconfirm "$pkg"
+				sudo paru -S --needed --noconfirm "$pkg"
 				;;
 			flatpak)
 				sudo flatpak install -y "$pkg"
@@ -271,12 +273,12 @@ main() {
 	parse_flags "$@"
 	parse_positionals "${REMAINING_ARGS[@]}"
 
+	load_config
+
 	validate_backend
 	validate_command
 	validate_args
 
-	load_config
-	
 	case "$BACKEND" in
 		pacman)
 			run_pacman

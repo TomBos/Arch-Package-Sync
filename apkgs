@@ -182,13 +182,13 @@ run_flatpak() {
 		add)
 			for pkg in "${ARGS[@]}"; do
 				add_package "$pkg" "flatpak"
-				sudo flatpak install -y "$pkg"
+				flatpak install --user -y "$pkg"
 			done
 			;;
 		remove)
 			for pkg in "${ARGS[@]}"; do
 				remove_package "$pkg" "flatpak"
-				sudo flatpak uninstall -y "$pkg"	
+				flatpak uninstall --user -y "$pkg"	
 			done
 			;;
 		sync)
@@ -258,7 +258,7 @@ sync_backend() {
 				paru -S --needed --noconfirm "$pkg"
 				;;
 			flatpak)
-				sudo flatpak install -y "$pkg"
+				flatpak install --user -y "$pkg"
 				;;
 			*)
 				echo "Unknown backend: $backend"

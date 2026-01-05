@@ -103,7 +103,7 @@ load_config() {
 }
 
 run_backend() {
-	local backend="$1"
+    local backend="$1"
     local config_var="USE_${backend^^}"
 
     if [[ "$backend" != "pacman" && "${!config_var}" != "1" ]]; then
@@ -114,22 +114,26 @@ run_backend() {
     case "$COMMAND" in
         add)
             for pkg in "${ARGS[@]}"; do
-                add_package "$pkg" "$backend"
                 case "$backend" in
                     pacman) sudo pacman -S --noconfirm "$pkg" ;;
                     flatpak) flatpak install --user -y "$pkg" ;;
                     *) "$backend" -S --noconfirm "$pkg" ;;
                 esac
+
+                # Add only on success
+                (( $? == 0 )) && add_package "$pkg" "$backend"
             done
             ;;
         remove)
             for pkg in "${ARGS[@]}"; do
-                remove_package "$pkg" "$backend"
                 case "$backend" in
                     pacman) sudo pacman -Rns --noconfirm "$pkg" ;;
                     flatpak) flatpak uninstall --user -y "$pkg" ;;
                     *) "$backend" -Rns --noconfirm "$pkg" ;;
                 esac
+
+				# Remove only on success
+                (( $? == 0 )) && remove_package "$pkg" "$backend"
             done
             ;;
         sync)

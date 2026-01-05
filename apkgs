@@ -102,99 +102,40 @@ load_config() {
 	fi
 }
 
-run_pacman() {
-	case "$COMMAND" in
-		add)
-			for pkg in "${ARGS[@]}"; do
-				add_package "$pkg" "pacman"
-				sudo pacman -S --noconfirm "$pkg"
-			done
-			;;
-		remove)
-			for pkg in "${ARGS[@]}"; do
-				remove_package "$pkg" "pacman"
-				sudo pacman -Rns --noconfirm "$pkg"
-			done
-			;;
-		sync)
-			sync_backend "pacman"	
-			;;
-	esac
-}
+run_backend() {
+	local backend="$1"
+    local config_var="USE_${backend^^}"
 
-run_paru() {
-	if [[ "$USE_PARU" != "1" ]]; then
-		echo "paru is not supported in your config!"
-		exit 1
-	fi
+    if [[ "$backend" != "pacman" && "${!config_var}" != "1" ]]; then
+        echo "$backend is not supported in your config!"
+        exit 1
+    fi
 
-	case "$COMMAND" in
-		add)
-			for pkg in "${ARGS[@]}"; do
-				add_package "$pkg" "paru"
-				paru -S --noconfirm "$pkg"
-			done
-			;;
-		remove)
-			for pkg in "${ARGS[@]}"; do
-				remove_package "$pkg" "paru"
-				paru -Rns --noconfirm "$pkg"
-			done
-			;;
-		sync)
-			sync_backend "paru"	
-			;;
-	esac
-}
-
-run_yay() {
-	if [[ "$USE_YAY" != "1" ]]; then
-		echo "yay is not supported in your config!"
-		exit 1
-	fi
-
-	case "$COMMAND" in
-		add)
-			for pkg in "${ARGS[@]}"; do
-				add_package "$pkg" "yay"
-				yay -S --noconfirm "$pkg"
-			done
-			;;
-		remove)
-			for pkg in "${ARGS[@]}"; do
-				remove_package "$pkg" "yay"
-				yay -Rns --noconfirm "$pkg"
-			done
-			;;
-		sync)
-			sync_backend "yay"	
-			;;
-	esac
-}
-
-run_flatpak() {
-	if [[ "$USE_FLATPAK" != "1" ]]; then
-		echo "flatpak is not supported in your config!"
-		exit 1
-	fi
-
-	case "$COMMAND" in
-		add)
-			for pkg in "${ARGS[@]}"; do
-				add_package "$pkg" "flatpak"
-				flatpak install --user -y "$pkg"
-			done
-			;;
-		remove)
-			for pkg in "${ARGS[@]}"; do
-				remove_package "$pkg" "flatpak"
-				flatpak uninstall --user -y "$pkg"	
-			done
-			;;
-		sync)
-			sync_backend "flatpak"	
-			;;
-	esac
+    case "$COMMAND" in
+        add)
+            for pkg in "${ARGS[@]}"; do
+                add_package "$pkg" "$backend"
+                case "$backend" in
+                    pacman) sudo pacman -S --noconfirm "$pkg" ;;
+                    flatpak) flatpak install --user -y "$pkg" ;;
+                    *) "$backend" -S --noconfirm "$pkg" ;;
+                esac
+            done
+            ;;
+        remove)
+            for pkg in "${ARGS[@]}"; do
+                remove_package "$pkg" "$backend"
+                case "$backend" in
+                    pacman) sudo pacman -Rns --noconfirm "$pkg" ;;
+                    flatpak) flatpak uninstall --user -y "$pkg" ;;
+                    *) "$backend" -Rns --noconfirm "$pkg" ;;
+                esac
+            done
+            ;;
+        sync)
+            sync_backend "$backend"
+            ;;
+    esac
 }
 
 add_package() {
@@ -273,33 +214,16 @@ sync_backend() {
 
 
 main() {
-	parse_flags "$@"
-	parse_positionals "${REMAINING_ARGS[@]}"
+    parse_flags "$@"
+    parse_positionals "${REMAINING_ARGS[@]}"
 
-	load_config
+    load_config
 
-	validate_backend
-	validate_command
-	validate_args
+    validate_backend
+    validate_command
+    validate_args
 
-	case "$BACKEND" in
-		pacman)
-			run_pacman
-			;;
-		paru)
-			run_paru
-			;;
-		yay)
-			run_yay
-			;;
-		flatpak)
-			run_flatpak
-			;;
-		*)
-			echo "Unsupported backend: $BACKEND" >&2
-			exit 1
-			;;
-	esac
+    run_backend "$BACKEND"
 }
 
 main "$@"

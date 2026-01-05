@@ -230,7 +230,10 @@ remove_package() {
 
 	# Remove exact line
 	grep -v -F -x "$package" "$state_file" > "$tmp_file"
-	mv "$tmp_file" "$state_file"
+
+	# In place manipulation, prevent breaking symlinks
+	cat "$tmp_file" > "$state_file"
+	rm "$tmp_file"
 }
 
 sync_backend() {
